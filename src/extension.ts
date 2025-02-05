@@ -1,26 +1,38 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import { CliHelper } from "./utils/cliHelper";
+import { CommandManager } from "./commands/commandManager";
+import { StatusBarManager } from "./status/statusBarManager";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  // Initialize the CLI Helper
+  CliHelper.initialize(context);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "json-schema-validator-blaze" is now active!');
+  // Initialize command manager
+  const commandManager = new CommandManager(context);
+  commandManager.registerCommands();
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('json-schema-validator-blaze.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from json-schema-validator-blaze!');
-	});
+  // Initialize status bar
+  const statusBar = new StatusBarManager(context);
+  statusBar.initialize();
 
-	context.subscriptions.push(disposable);
+  // Setup auto-validation if enabled
+  // setupAutoValidation(context);
+
+  console.log("JSON Schema Validator Blaze is now active");
 }
 
-// This method is called when your extension is deactivated
+// function setupAutoValidation(context: vscode.ExtensionContext) {
+//   const config = vscode.workspace.getConfiguration("jsonSchemaExtension");
+//   if (config.get<boolean>("autoValidate")) {
+//     const disposable = vscode.workspace.onDidSaveTextDocument(
+//       async (document) => {
+//         if (document.languageId === "json" || document.languageId === "jsonc") {
+//           await vscode.commands.executeCommand("jsonschema.validate");
+//         }
+//       }
+//     );
+//     context.subscriptions.push(disposable);
+//   }
+// }
+
 export function deactivate() {}
