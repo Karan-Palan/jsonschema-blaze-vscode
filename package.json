@@ -2,6 +2,7 @@
   "name": "jsonschema-validator-blaze",
   "displayName": "JSON Schema Validator Blaze",
   "description": "High-performance JSON Schema validator and linter for VS Code",
+  "license": "MIT",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.80.0"
