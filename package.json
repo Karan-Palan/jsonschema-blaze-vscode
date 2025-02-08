@@ -82,5 +82,27 @@
   },
   "dependencies": {
     "@sourcemeta/jsonschema": "latest"
+  },
+  "vsce": {
+    "exclude": [
+      "test/**",
+      "src/**",
+      "out/test/**",
+      "out/**/*.map",
+      "**/*.ts",
+      "**/*.ts.map",
+      ".vscode/**",
+      ".gitignore",
+      ".eslint*",
+      "CHANGELOG.md",
+      "README.md",
+      "LICENSE",
+      "package-lock.json"
+    ],
+    "include": [
+      "out/**",
+      "node_modules/@sourcemeta/**",
+      "node_modules/.bin/jsonschema"
+    ]
   }
 }

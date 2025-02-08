@@ -1,14 +1,10 @@
+import { exec } from "child_process";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { promisify } from "util";
 
 const exists = promisify(fs.exists);
-
-interface CliConfig {
-  command: string;
-  args: string[];
-}
 
 export class CliHelper {
   private static instance: CliHelper;
@@ -29,28 +25,30 @@ export class CliHelper {
     return CliHelper.instance;
   }
 
-  async getCliCommand(): Promise<CliConfig> {
+  async getCliCommand(): Promise<{ command: string; args: string[] }> {
     try {
-      // First, check user configuration
       const cliPath = await this.getConfiguredCliPath();
       if (cliPath) {
         return { command: cliPath, args: [] };
       }
 
-      // Then, try to find in extension's node_modules
       const extensionCliPath = await this.findInExtensionNodeModules();
       if (extensionCliPath) {
         return { command: extensionCliPath, args: [] };
       }
 
-      // Finally, check workspace node_modules
       const workspaceCliPath = await this.findInWorkspaceNodeModules();
       if (workspaceCliPath) {
         return { command: workspaceCliPath, args: [] };
       }
 
-      // If CLI is not found, show detailed error message and installation instructions
+      const globalCliPath = await this.findGlobalCli();
+      if (globalCliPath) {
+        return { command: globalCliPath, args: [] };
+      }
+
       await this.showInstallationInstructions();
+      await this.promptToInstallCli();
       throw new Error("JSON Schema CLI not found");
     } catch (error) {
       throw new Error(`Failed to locate JSON Schema CLI: ${error.message}`);
@@ -60,8 +58,8 @@ export class CliHelper {
   private async getConfiguredCliPath(): Promise<string | null> {
     const config = vscode.workspace.getConfiguration("jsonSchemaExtension");
     const configuredPath = config.get<string>("cliPath");
-    
-    if (configuredPath && await exists(configuredPath)) {
+
+    if (configuredPath && (await exists(configuredPath))) {
       return configuredPath;
     }
     return null;
@@ -72,7 +70,14 @@ export class CliHelper {
     const possiblePaths = [
       path.join(extensionPath, "node_modules", ".bin", "jsonschema"),
       path.join(extensionPath, "node_modules", ".bin", "jsonschema.cmd"),
-      path.join(extensionPath, "node_modules", "@sourcemeta", "jsonschema", "bin", "jsonschema")
+      path.join(
+        extensionPath,
+        "node_modules",
+        "@sourcemeta",
+        "jsonschema",
+        "bin",
+        "jsonschema"
+      ),
     ];
 
     for (const binPath of possiblePaths) {
@@ -92,7 +97,14 @@ export class CliHelper {
       const possiblePaths = [
         path.join(folder.uri.fsPath, "node_modules", ".bin", "jsonschema"),
         path.join(folder.uri.fsPath, "node_modules", ".bin", "jsonschema.cmd"),
-        path.join(folder.uri.fsPath, "node_modules", "@sourcemeta", "jsonschema", "bin", "jsonschema")
+        path.join(
+          folder.uri.fsPath,
+          "node_modules",
+          "@sourcemeta",
+          "jsonschema",
+          "bin",
+          "jsonschema"
+        ),
       ];
 
       for (const binPath of possiblePaths) {
@@ -104,10 +116,39 @@ export class CliHelper {
     return null;
   }
 
+  private async findGlobalCli(): Promise<string | null> {
+    return new Promise((resolve) => {
+      exec("which jsonschema", (error, stdout) => {
+        if (!error && stdout) {
+          resolve(stdout.trim());
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  private async promptToInstallCli(): Promise<void> {
+    const message =
+      "JSON Schema CLI not found. Do you want to install it automatically?";
+    const response = await vscode.window.showErrorMessage(
+      message,
+      "Install",
+      "Cancel"
+    );
+
+    if (response === "Install") {
+      const terminal = vscode.window.createTerminal("JSON Schema CLI");
+      terminal.sendText("npm install -g @sourcemeta/jsonschema");
+      terminal.show();
+    }
+  }
+
   private async showInstallationInstructions(): Promise<void> {
-    const message = "JSON Schema CLI not found. Would you like to see installation instructions?";
+    const message =
+      "JSON Schema CLI not found. Would you like to see installation instructions?";
     const response = await vscode.window.showErrorMessage(message, "Yes", "No");
-    
+
     if (response === "Yes") {
       const panel = vscode.window.createWebviewPanel(
         "jsonSchemaInstall",
@@ -139,4 +180,3 @@ export class CliHelper {
     }
   }
 }
-
