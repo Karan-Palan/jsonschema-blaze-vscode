@@ -9,8 +9,7 @@ interface ParsedLocation {
 export function parseValidateOutput(output: string): vscode.Diagnostic[] {
   const diagnostics: vscode.Diagnostic[] = [];
   const lines = output.split(/\r?\n/);
-  let currentError: { message: string; location?: ParsedLocation } | null =
-    null;
+  let currentError: { message: string; location?: ParsedLocation } | null = null;
 
   for (const line of lines) {
     if (line.startsWith("fail:")) {
@@ -55,31 +54,34 @@ export function parseValidateOutput(output: string): vscode.Diagnostic[] {
 export function parseLintOutput(output: string): vscode.Diagnostic[] {
   const diagnostics: vscode.Diagnostic[] = [];
   const lines = output.split(/\r?\n/);
-  let currentWarning: { message: string; location?: ParsedLocation } | null =
-    null;
+  let currentWarning: { message: string; location?: ParsedLocation } | null = null;
 
   for (const line of lines) {
-    if (line.match(/.*\.(json|yaml|yml|jsonl)$/)) {
+    const fileMatch = line.match(/^(.*\.(json|yaml|yml|jsonl))/);
+    if (fileMatch) {
       if (currentWarning) {
         diagnostics.push(
           createDiagnostic(currentWarning, vscode.DiagnosticSeverity.Warning)
         );
       }
-      currentWarning = { message: "" };
+      currentWarning = { message: "", location: undefined };
       continue;
     }
 
-    if (currentWarning && line.trim()) {
-      currentWarning.message +=
-        (currentWarning.message ? " " : "") + line.trim();
-      const locationMatch = line.match(/line (\d+), col (\d+)/);
-      if (locationMatch) {
+    const locationMatch = line.match(/line (\d+), col (\d+)/);
+    if (locationMatch) {
+      if (currentWarning) {
         currentWarning.location = {
           line: parseInt(locationMatch[1]) - 1,
           column: parseInt(locationMatch[2]) - 1,
           path: "",
         };
       }
+      continue;
+    }
+
+    if (currentWarning && line.trim()) {
+      currentWarning.message += (currentWarning.message ? " " : "") + line.trim();
     }
   }
 

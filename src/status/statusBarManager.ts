@@ -24,15 +24,32 @@ export class StatusBarManager {
   updateStatus(message: string, type: "success" | "error" | "working"): void {
     switch (type) {
       case "success":
-        this.statusBarItem.text = "$(check) JSON Schema";
+        this.statusBarItem.text = "$(check) JSON Schema - Success";
         this.statusBarItem.tooltip = message;
         break;
       case "error":
-        this.statusBarItem.text = "$(error) JSON Schema";
+        this.statusBarItem.text = "$(error) JSON Schema - Error";
         this.statusBarItem.tooltip = message;
         break;
       case "working":
-        this.statusBarItem.text = "$(sync~spin) JSON Schema";
+        this.statusBarItem.text = "$(sync~spin) JSON Schema - Processing...";
+        this.statusBarItem.tooltip = message;
+        break;
+    }
+  }
+
+  updateLintStatus(message: string, type: "success" | "error" | "working"): void {
+    switch (type) {
+      case "success":
+        this.statusBarItem.text = "$(check) JSON Lint - No Issues";
+        this.statusBarItem.tooltip = message;
+        break;
+      case "error":
+        this.statusBarItem.text = "$(alert) JSON Lint - Issues Found";
+        this.statusBarItem.tooltip = message;
+        break;
+      case "working":
+        this.statusBarItem.text = "$(sync~spin) JSON Lint - Running...";
         this.statusBarItem.tooltip = message;
         break;
     }
