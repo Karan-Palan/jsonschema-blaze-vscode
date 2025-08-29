@@ -104,6 +104,80 @@ function parseLocation(line: string): ParsedLocation {
   };
 }
 
+export function parseFormatOutput(output: string): { filePath: string; diagnostic: vscode.Diagnostic }[] {
+  const diagnostics: { filePath: string; diagnostic: vscode.Diagnostic }[] = [];
+  const lines = output.split(/\r?\n/);
+  let currentFile: string | null = null;
+  let isCapturingDiff = false;
+  let gotSection = false;
+  let expectedSection = false;
+  let diffMessage = "";
+
+  for (const line of lines) {
+    const failMatch = line.match(/^FAIL: (.+)$/);
+    if (failMatch) {
+      currentFile = failMatch[1];
+      isCapturingDiff = false;
+      gotSection = false;
+      expectedSection = false;
+      diffMessage = "";
+      continue;
+    }
+
+    if (currentFile) {
+      if (line.startsWith("Got:")) {
+        gotSection = true;
+        expectedSection = false;
+        diffMessage = "File is not properly formatted. ";
+        continue;
+      }
+
+      if (line.startsWith("But expected:")) {
+        gotSection = false;
+        expectedSection = true;
+        continue;
+      }
+
+      if ((gotSection || expectedSection) && line.trim() === "") {
+        if (diffMessage) {
+          const diagnostic = new vscode.Diagnostic(
+            new vscode.Range(0, 0, 0, 1),
+            diffMessage + "Use 'JSON Schema: Format' to fix the formatting.",
+            vscode.DiagnosticSeverity.Warning
+          );
+          diagnostic.source = "JSON Schema Validator Blaze";
+          diagnostic.code = "format-check";
+          
+          diagnostics.push({
+            filePath: currentFile,
+            diagnostic: diagnostic
+          });
+        }
+        currentFile = null;
+        diffMessage = "";
+      }
+    }
+  }
+
+  if (currentFile && diffMessage) {
+    const diagnostic = new vscode.Diagnostic(
+      new vscode.Range(0, 0, 0, 1),
+      diffMessage + "Use 'JSON Schema: Format' to fix the formatting.",
+      vscode.DiagnosticSeverity.Warning
+    );
+    diagnostic.source = "JSON Schema Validator Blaze";
+    diagnostic.code = "format-check";
+    
+    diagnostics.push({
+      filePath: currentFile,
+      diagnostic: diagnostic
+    });
+  }
+
+  console.log("Parsed Format Diagnostics:", diagnostics);
+  return diagnostics;
+}
+
 function createDiagnostic(
   error: { message: string; location?: ParsedLocation },
   severity: vscode.DiagnosticSeverity
