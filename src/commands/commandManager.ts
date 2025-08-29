@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { runValidationCommand } from "./validate";
 import { runLintCommand } from "./lint";
+import { runFormatCommand } from "./format";
 
 export class CommandManager {
   private context: vscode.ExtensionContext;
@@ -27,6 +28,14 @@ export class CommandManager {
         }
       }),
 
+      vscode.commands.registerCommand("jsonschema.format", async () => {
+        try {
+          await runFormatCommand();
+        } catch (error) {
+          this.handleError("Formatting", error);
+        }
+      }),
+
       vscode.commands.registerCommand("jsonschema.showQuickPicks", async () => {
         const choice = await vscode.window.showQuickPick(
           [
@@ -35,6 +44,7 @@ export class CommandManager {
               command: "jsonschema.validate",
             },
             { label: "$(telescope) Lint Schema", command: "jsonschema.lint" },
+            { label: "$(symbol-color) Format Schema", command: "jsonschema.format" },
           ],
           { placeHolder: "Select JSON Schema action" }
         );
